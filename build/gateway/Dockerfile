@@ -37,6 +37,7 @@ COPY --from=alpine-build .. .
 WORKDIR /usr/bin
 
 COPY --from=build /go/src/app /go
+COPY ./configs configs
 EXPOSE 8080
 
 ENTRYPOINT /go/bin/gateway
