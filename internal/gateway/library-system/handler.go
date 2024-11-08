@@ -92,6 +92,8 @@ func (h *handler) GetLibraries(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, echo.Map{"message": "failed to parse request"})
 	}
 
+	reqURL.RawQuery = queryParams.Encode()
+
 	req, err := http.NewRequest(http.MethodGet, reqURL.String(), nil)
 	if err != nil {
 		log.Err(err).Msg("failed to process request to library service")
@@ -123,6 +125,8 @@ func (h *handler) GetBooksByLibrary(c echo.Context) error {
 		log.Err(err).Msg("failed to parse request to library service")
 		return c.JSON(http.StatusBadRequest, echo.Map{"message": "failed to parse request"})
 	}
+
+	reqURL.RawQuery = queryParams.Encode()
 
 	req, err := http.NewRequest(http.MethodGet, reqURL.String(), nil)
 	if err != nil {
