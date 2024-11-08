@@ -2,7 +2,7 @@ package http
 
 import (
 	"context"
-	"github.com/Erlendum/rsoi-lab-02/internal/reservation-system/config"
+	"github.com/Erlendum/rsoi-lab-02/internal/library-system/config"
 	"github.com/Erlendum/rsoi-lab-02/pkg/validation"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
@@ -11,25 +11,26 @@ import (
 	"net/http"
 )
 
-type reservationHandler interface {
+type libraryHandler interface {
 	Register(echo *echo.Echo)
-	GetReservations(c echo.Context) error
-	GetReservationByUid(c echo.Context) error
-	CreateReservation(c echo.Context) error
-	UpdateReservationStatus(c echo.Context) error
+	GetLibraries(c echo.Context) error
+	GetBooksByLibrary(c echo.Context) error
+	GetBooksByUids(c echo.Context) error
+	GetLibrariesByUids(c echo.Context) error
+	UpdateBooksAvailableCount(c echo.Context) error
 }
 
 type server struct {
-	echo               *echo.Echo
-	cfg                *config.Server
-	reservationHandler reservationHandler
+	echo           *echo.Echo
+	cfg            *config.Server
+	libraryHandler libraryHandler
 }
 
-func NewServer(cfg *config.Server, reservationHandler reservationHandler) *server {
+func NewServer(cfg *config.Server, libraryHandler libraryHandler) *server {
 	return &server{
-		echo:               echo.New(),
-		reservationHandler: reservationHandler,
-		cfg:                cfg,
+		echo:           echo.New(),
+		libraryHandler: libraryHandler,
+		cfg:            cfg,
 	}
 }
 
@@ -52,7 +53,7 @@ func (s *server) Init() error {
 		return c.NoContent(http.StatusOK)
 	})
 
-	s.reservationHandler.Register(s.echo)
+	s.libraryHandler.Register(s.echo)
 	return nil
 }
 

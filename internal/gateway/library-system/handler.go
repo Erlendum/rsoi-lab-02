@@ -204,7 +204,7 @@ type libraryResp struct {
 }
 
 func (h *handler) getLibrariesByUids(uids []string) (map[string]libraryResp, error) {
-	reqURL, err := url.Parse(h.config.LibrarySystemURL + "/libraries/")
+	reqURL, err := url.Parse(h.config.LibrarySystemURL + "/libraries/by-uids")
 	if err != nil {
 		return nil, err
 	}
@@ -519,6 +519,15 @@ func (h *handler) ReserveBookByUser(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
 	}
 
+	statusCode, body, err = h.updateAvailableCount(createdReservation.LibraryUid, createdReservation.BookUid, -1)
+	if err != nil {
+		log.Err(err).Msg("failed to process request to library service")
+		if errors.Is(err, errNotOkStatusCode) {
+			return c.String(statusCode, string(body))
+		}
+		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
+	}
+
 	type response struct {
 		ReservationUid string      `json:"reservationUid"`
 		Status         string      `json:"status"`
@@ -558,8 +567,8 @@ func (h *handler) ReserveBookByUser(c echo.Context) error {
 	})
 }
 
-func (h *handler) incAvailableCount(libraryUid, bookUid string) (int, []byte, error) {
-	req, err := http.NewRequest(http.MethodPut, h.config.LibrarySystemURL+"/libraries/"+libraryUid+"/books/"+bookUid+"/inc", nil)
+func (h *handler) updateAvailableCount(libraryUid, bookUid string, countDiff int) (int, []byte, error) {
+	req, err := http.NewRequest(http.MethodPut, h.config.LibrarySystemURL+"/libraries/"+libraryUid+"/books/"+bookUid+"?countDiff="+strconv.Itoa(countDiff), nil)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -693,7 +702,7 @@ func (h *handler) ReturnBookByUser(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
 	}
 
-	statusCode, body, err = h.incAvailableCount(reservation.LibraryUid, reservation.BookUid)
+	statusCode, body, err = h.updateAvailableCount(reservation.LibraryUid, reservation.BookUid, 1)
 	if err != nil {
 		log.Err(err).Msg("failed to process request to library service")
 		if errors.Is(err, errNotOkStatusCode) {

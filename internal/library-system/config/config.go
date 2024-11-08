@@ -26,7 +26,7 @@ func New() (*Config, error) {
 
 	cfg.PostgreSQL.DSN = os.Getenv("POSTGRESQL_DSN")
 
-	yamlFile, err := os.ReadFile(fmt.Sprint("./configs/reservation-system/config.yml"))
+	yamlFile, err := os.ReadFile(fmt.Sprint("./configs/library-system/config.yml"))
 	if err != nil {
 		return cfg, err
 	}

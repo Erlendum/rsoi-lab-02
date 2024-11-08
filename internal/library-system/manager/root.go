@@ -2,9 +2,9 @@ package manager
 
 import (
 	"context"
-	"github.com/Erlendum/rsoi-lab-02/internal/reservation-system/config"
-	"github.com/Erlendum/rsoi-lab-02/internal/reservation-system/http"
-	"github.com/Erlendum/rsoi-lab-02/internal/reservation-system/reservation"
+	"github.com/Erlendum/rsoi-lab-02/internal/library-system/config"
+	"github.com/Erlendum/rsoi-lab-02/internal/library-system/http"
+	"github.com/Erlendum/rsoi-lab-02/internal/library-system/library"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/rs/zerolog"
@@ -45,11 +45,11 @@ func (r *root) Register(ctx context.Context) error {
 		return err
 	}
 
-	reservationRepo := reservation.NewRepository(psqldb)
+	libraryRepo := library.NewRepository(psqldb)
 
-	reservationHandler := reservation.NewHandler(reservationRepo)
+	libraryHandler := library.NewHandler(libraryRepo)
 
-	r.server = http.NewServer(&r.cfg.Server, reservationHandler)
+	r.server = http.NewServer(&r.cfg.Server, libraryHandler)
 
 	err = r.server.Init()
 	if err != nil {
