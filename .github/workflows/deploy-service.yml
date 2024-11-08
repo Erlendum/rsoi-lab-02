@@ -36,7 +36,6 @@ jobs:
         env:
           SERVICE_EXT_PORT: ${{ secrets[format('{0}_EXT_PORT', inputs.service-name | upper)] }}
         with:
-        with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USERNAME }}
           key: ${{ secrets.DEPLOY_PRIVATE_KEY }}
