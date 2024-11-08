@@ -48,7 +48,7 @@ func (r *repository) GetLibraries(ctx context.Context, city string, offset, limi
 
 }
 
-func (r *repository) GetBooksByLibrary(ctx context.Context, libraryUid string, offset, limit int) ([]book, error) {
+func (r *repository) GetBooksByLibrary(ctx context.Context, libraryUid string, offset, limit int, showAll bool) ([]book, error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 	builder := psql.Select("b.id", "b.bookUid", "b.name", "b.author", "b.genre", "b.condition", "lb.available_count").
 		From("books b").
@@ -56,6 +56,9 @@ func (r *repository) GetBooksByLibrary(ctx context.Context, libraryUid string, o
 		Join("library l ON lb.library_id = l.id").
 		Where(sq.Eq{"library.libraryUid": libraryUid}).Limit(uint64(limit)).Offset(uint64(offset))
 
+	if !showAll {
+		builder = builder.Where(sq.Gt{"lb.available_count": 0})
+	}
 	query, args, err := builder.ToSql()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build query")

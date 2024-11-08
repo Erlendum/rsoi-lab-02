@@ -13,7 +13,7 @@ import (
 
 type storage interface {
 	GetLibraries(ctx context.Context, city string, offset, limit int) ([]library, error)
-	GetBooksByLibrary(ctx context.Context, libraryUid string, offset, limit int) ([]book, error)
+	GetBooksByLibrary(ctx context.Context, libraryUid string, offset, limit int, showAll bool) ([]book, error)
 	GetBooksAvailableCount(ctx context.Context, libraryUid, bookUid string) (int, error)
 	GetBooksByUids(ctx context.Context, uids []string) ([]book, error)
 	GetLibrariesByUids(ctx context.Context, uids []string) ([]library, error)
@@ -131,7 +131,16 @@ func (h *handler) GetBooksByLibrary(c echo.Context) error {
 		})
 	}
 
-	books, err := h.storage.GetBooksByLibrary(c.Request().Context(), libraryUid, page*size-size, size)
+	showAllParam := c.QueryParam("showAll")
+	showAll, err := strconv.ParseBool(showAllParam)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "showAll is wrong",
+		})
+	}
+
+
+	books, err := h.storage.GetBooksByLibrary(c.Request().Context(), libraryUid, page*size-size, size, showAll)
 
 	if err != nil {
 		log.Err(err).Msg("failed to get books")

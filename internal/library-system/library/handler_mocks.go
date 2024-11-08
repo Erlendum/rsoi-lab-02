@@ -50,18 +50,18 @@ func (mr *MockstorageMockRecorder) GetBooksAvailableCount(ctx, libraryUid, bookU
 }
 
 // GetBooksByLibrary mocks base method.
-func (m *Mockstorage) GetBooksByLibrary(ctx context.Context, libraryUid string, offset, limit int) ([]book, error) {
+func (m *Mockstorage) GetBooksByLibrary(ctx context.Context, libraryUid string, offset, limit int, showAll bool) ([]book, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBooksByLibrary", ctx, libraryUid, offset, limit)
+	ret := m.ctrl.Call(m, "GetBooksByLibrary", ctx, libraryUid, offset, limit, showAll)
 	ret0, _ := ret[0].([]book)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetBooksByLibrary indicates an expected call of GetBooksByLibrary.
-func (mr *MockstorageMockRecorder) GetBooksByLibrary(ctx, libraryUid, offset, limit interface{}) *gomock.Call {
+func (mr *MockstorageMockRecorder) GetBooksByLibrary(ctx, libraryUid, offset, limit, showAll interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBooksByLibrary", reflect.TypeOf((*Mockstorage)(nil).GetBooksByLibrary), ctx, libraryUid, offset, limit)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBooksByLibrary", reflect.TypeOf((*Mockstorage)(nil).GetBooksByLibrary), ctx, libraryUid, offset, limit, showAll)
 }
 
 // GetBooksByUids mocks base method.
