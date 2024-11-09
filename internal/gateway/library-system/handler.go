@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Erlendum/rsoi-lab-02/internal/gateway/config"
+	my_time "github.com/Erlendum/rsoi-lab-02/pkg/time"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
 	"io"
@@ -112,6 +113,7 @@ func (h *handler) GetLibraries(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
 	}
 
+	c.Response().Header().Set("Content-Type", "application/json")
 	return c.String(resp.StatusCode, string(body))
 }
 
@@ -146,6 +148,7 @@ func (h *handler) GetBooksByLibrary(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
 	}
 
+	c.Response().Header().Set("Content-Type", "application/json")
 	return c.String(resp.StatusCode, string(body))
 }
 
@@ -253,16 +256,16 @@ func (h *handler) getLibrariesByUids(uids []string) (map[string]libraryResp, err
 }
 
 type reservationResp struct {
-	ReservationUid string    `json:"reservationUid"`
-	Status         string    `json:"status"`
-	StartDate      time.Time `json:"startDate"`
-	TillDate       time.Time `json:"tillDate"`
-	BookUid        string    `json:"bookUid"`
-	LibraryUid     string    `json:"libraryUid"`
+	ReservationUid string `json:"reservationUid"`
+	Status         string `json:"status"`
+	StartDate      string `json:"startDate"`
+	TillDate       string `json:"tillDate"`
+	BookUid        string `json:"bookUid"`
+	LibraryUid     string `json:"libraryUid"`
 }
 
 func (h *handler) getReservationsByUser(userName string) ([]reservationResp, int, error) {
-	reqURL, err := url.Parse(h.config.ReservationSystemURL + "/reservations/" + userName)
+	reqURL, err := url.Parse(h.config.ReservationSystemURL + "/reservations/by-user/" + userName)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -354,8 +357,8 @@ func (h *handler) GetBooksByUser(c echo.Context) error {
 	type reservationExtended struct {
 		ReservationUid string      `json:"reservationUid"`
 		Status         string      `json:"status"`
-		StartDate      time.Time   `json:"startDate"`
-		TillDate       time.Time   `json:"tillDate"`
+		StartDate      string      `json:"startDate"`
+		TillDate       string      `json:"tillDate"`
 		Book           bookResp    `json:"book"`
 		Library        libraryResp `json:"library"`
 	}
@@ -659,8 +662,8 @@ func (h *handler) ReturnBookByUser(c echo.Context) error {
 	}
 
 	type req struct {
-		Condition string    `json:"condition"`
-		Date      time.Time `json:"date"`
+		Condition string `json:"condition"`
+		Date      string `json:"date"`
 	}
 
 	reqBody, err := io.ReadAll(c.Request().Body)
@@ -678,18 +681,18 @@ func (h *handler) ReturnBookByUser(c echo.Context) error {
 
 	starsDiff := 0
 	targetStatus := returnedStatus
-	if reqData.Date.After(reservation.TillDate) {
+	tillDate, err := my_time.NewDate(reservation.TillDate)
+	if err != nil {
+		log.Err(err).Msg("failed to parse till date")
+		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
+	}
+	reqDate, err := my_time.NewDate(reqData.Date)
+	if err != nil {
+		log.Err(err).Msg("failed to parse date")
+		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
+	}
+	if time.Time(*reqDate).After(time.Time(*tillDate)) {
 		targetStatus = expiredStatus
-		starsDiff -= 10
-	}
-
-	cmp, err := compareConditions(targetStatus, reqData.Condition)
-	if err != nil || cmp > 0 {
-		log.Err(err).Send()
-		return c.JSON(http.StatusBadRequest, echo.Map{"message": "condition is not valid"})
-	}
-
-	if cmp < 0 {
 		starsDiff -= 10
 	}
 
@@ -724,7 +727,7 @@ func (h *handler) ReturnBookByUser(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
 	}
 
-	return c.NoContent(http.StatusOK)
+	return c.NoContent(http.StatusNoContent)
 }
 
 func (h *handler) getRatingByUser(userName string) (int, []byte, error) {
@@ -760,5 +763,6 @@ func (h *handler) GetRatingByUser(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
 	}
 
+	c.Response().Header().Set("Content-Type", "application/json")
 	return c.String(http.StatusOK, string(body))
 }

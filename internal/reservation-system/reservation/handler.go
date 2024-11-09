@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	my_time "github.com/Erlendum/rsoi-lab-02/pkg/time"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
@@ -36,10 +37,10 @@ func NewHandler(storage storage) *handler {
 func (h *handler) Register(echo *echo.Echo) {
 	api := echo.Group("/api/v1")
 
-	api.GET("/reservations/:username", h.GetReservations)
+	api.GET("/reservations/by-user/:username", h.GetReservations)
 	api.GET("/reservations/:uid", h.GetReservationByUid)
-	api.POST("/reservations", h.CreateReservation)
-	api.PUT("/rating/:username", h.UpdateReservationStatus)
+	api.POST("/reservations/", h.CreateReservation)
+	api.PUT("/reservations/:uid/status", h.UpdateReservationStatus)
 }
 
 func (h *handler) GetReservations(c echo.Context) error {
@@ -68,12 +69,12 @@ func (h *handler) GetReservations(c echo.Context) error {
 	}
 
 	type response struct {
-		ReservationUid string    `json:"reservationUid"`
-		Status         string    `json:"status"`
-		StartDate      time.Time `json:"startDate"`
-		TillDate       time.Time `json:"tillDate"`
-		BookUid        string    `json:"bookUid"`
-		LibraryUid     string    `json:"libraryUid"`
+		ReservationUid string `json:"reservationUid"`
+		Status         string `json:"status"`
+		StartDate      string `json:"startDate"`
+		TillDate       string `json:"tillDate"`
+		BookUid        string `json:"bookUid"`
+		LibraryUid     string `json:"libraryUid"`
 	}
 
 	res := make([]response, 0, len(r))
@@ -81,8 +82,8 @@ func (h *handler) GetReservations(c echo.Context) error {
 		res = append(res, response{
 			ReservationUid: *v.ReservationUid,
 			Status:         *v.Status,
-			StartDate:      *v.StartDate,
-			TillDate:       *v.TillDate,
+			StartDate:      v.StartDate.String(),
+			TillDate:       v.TillDate.String(),
 			BookUid:        *v.BookUid,
 			LibraryUid:     *v.LibraryUid,
 		})
@@ -114,19 +115,19 @@ func (h *handler) GetReservationByUid(c echo.Context) error {
 	}
 
 	type response struct {
-		ReservationUid string    `json:"reservationUid"`
-		Status         string    `json:"status"`
-		StartDate      time.Time `json:"startDate"`
-		TillDate       time.Time `json:"tillDate"`
-		BookUid        string    `json:"bookUid"`
-		LibraryUid     string    `json:"libraryUid"`
+		ReservationUid string `json:"reservationUid"`
+		Status         string `json:"status"`
+		StartDate      string `json:"startDate"`
+		TillDate       string `json:"tillDate"`
+		BookUid        string `json:"bookUid"`
+		LibraryUid     string `json:"libraryUid"`
 	}
 
 	return c.JSON(http.StatusOK, response{
 		ReservationUid: *r.ReservationUid,
 		Status:         *r.Status,
-		StartDate:      *r.StartDate,
-		TillDate:       *r.TillDate,
+		StartDate:      r.StartDate.String(),
+		TillDate:       r.TillDate.String(),
 		BookUid:        *r.BookUid,
 		LibraryUid:     *r.LibraryUid,
 	})
@@ -141,9 +142,9 @@ func (h *handler) CreateReservation(c echo.Context) error {
 	}
 
 	type request struct {
-		BookUid    string    `json:"bookUid" validate:"required"`
-		LibraryUid string    `json:"libraryUid" validate:"required"`
-		TillDate   time.Time `json:"tillDate" validate:"required"`
+		BookUid    string       `json:"bookUid" validate:"required"`
+		LibraryUid string       `json:"libraryUid" validate:"required"`
+		TillDate   my_time.Date `json:"tillDate" validate:"required"`
 	}
 
 	body, err := io.ReadAll(c.Request().Body)
@@ -162,9 +163,9 @@ func (h *handler) CreateReservation(c echo.Context) error {
 		})
 	}
 
-	now := time.Now()
+	now := my_time.Date(time.Now())
 	reservationUid := uuid.New().String()
-	id, err := h.storage.CreateReservation(c.Request().Context(), &reservation{
+	_, err = h.storage.CreateReservation(c.Request().Context(), &reservation{
 		BookUid:        &req.BookUid,
 		ReservationUid: &reservationUid,
 		LibraryUid:     &req.LibraryUid,
@@ -181,7 +182,23 @@ func (h *handler) CreateReservation(c echo.Context) error {
 		})
 	}
 
-	return c.JSON(http.StatusOK, echo.Map{"id": id})
+	type response struct {
+		ReservationUid string `json:"reservationUid"`
+		Status         string `json:"status"`
+		StartDate      string `json:"startDate"`
+		TillDate       string `json:"tillDate"`
+		BookUid        string `json:"bookUid"`
+		LibraryUid     string `json:"libraryUid"`
+	}
+
+	return c.JSON(http.StatusOK, response{
+		ReservationUid: reservationUid,
+		Status:         rentedStatus,
+		StartDate:      now.String(),
+		TillDate:       req.TillDate.String(),
+		BookUid:        req.BookUid,
+		LibraryUid:     req.LibraryUid,
+	})
 }
 
 func (h *handler) UpdateReservationStatus(c echo.Context) error {

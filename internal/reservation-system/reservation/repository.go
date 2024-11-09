@@ -3,6 +3,7 @@ package reservation
 import (
 	"context"
 	"database/sql"
+	my_time "github.com/Erlendum/rsoi-lab-02/pkg/time"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -24,7 +25,7 @@ func NewRepository(conn *sqlx.DB) *repository {
 func (r *repository) CreateReservation(ctx context.Context, res *reservation) (int, error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 	builder := psql.Insert("reservation").Columns("reservation_uid", "username", "book_uid", "library_uid", "status", "start_date", "till_date").
-		Values(*res.ReservationUid, *res.UserName, *res.BookUid, *res.LibraryUid, *res.Status, *res.StartDate, *res.TillDate)
+		Values(*res.ReservationUid, *res.UserName, *res.BookUid, *res.LibraryUid, *res.Status, res.StartDate.String(), res.TillDate.String())
 	query, args, err := builder.Suffix("RETURNING id").ToSql()
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to build query")
@@ -87,12 +88,22 @@ func (r *repository) GetReservation(ctx context.Context, uid string) (reservatio
 
 	res := reservation{}
 
-	err = r.conn.GetContext(ctx, &res, query, args...)
+	var startDate, tillDate string
+	err = r.conn.QueryRowContext(ctx, query, args...).Scan(&res.ReservationUid, &res.UserName, &res.BookUid, &res.LibraryUid, &res.Status, &startDate, &tillDate)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return reservation{}, errNotFound
 		}
 		return reservation{}, errors.Wrap(err, "failed to execute query")
+	}
+
+	res.StartDate, err = my_time.NewDate(startDate)
+	if err != nil {
+		return reservation{}, errors.Wrap(err, "failed to parse start date")
+	}
+	res.TillDate, err = my_time.NewDate(tillDate)
+	if err != nil {
+		return reservation{}, errors.Wrap(err, "failed to parse till date")
 	}
 
 	return res, nil
@@ -113,12 +124,27 @@ func (r *repository) GetReservations(ctx context.Context, username string, statu
 
 	res := make([]reservation, 0)
 
-	err = r.conn.GetContext(ctx, &res, query, args...)
+	rows, err := r.conn.QueryxContext(ctx, query, args...)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errNotFound
+		return nil, errors.Wrapf(err, "failed to perform query %s", query)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var model reservation
+		var startDate, tillDate string
+		if err = rows.Scan(&model.ReservationUid, &model.UserName, &model.BookUid, &model.LibraryUid, &model.Status, &startDate, &tillDate); err != nil {
+			return nil, errors.Wrap(err, "failed to row scan")
 		}
-		return nil, errors.Wrap(err, "failed to execute query")
+		model.StartDate, err = my_time.NewDate(startDate)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to parse start date")
+		}
+		model.TillDate, err = my_time.NewDate(tillDate)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to parse till date")
+		}
+		res = append(res, model)
 	}
 
 	return res, nil

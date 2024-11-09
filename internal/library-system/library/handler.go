@@ -33,7 +33,7 @@ func (h *handler) Register(echo *echo.Echo) {
 
 	api.GET("/libraries", h.GetLibraries)
 	api.GET("/libraries/:uid/books", h.GetBooksByLibrary)
-	api.GET("/books", h.GetBooksByUids)
+	api.GET("/books/", h.GetBooksByUids)
 	api.GET("/libraries/by-uids", h.GetLibrariesByUids)
 	api.PUT("/libraries/:libraryuid/books/:bookuid", h.UpdateBooksAvailableCount)
 }
@@ -138,7 +138,6 @@ func (h *handler) GetBooksByLibrary(c echo.Context) error {
 			"message": "showAll is wrong",
 		})
 	}
-
 
 	books, err := h.storage.GetBooksByLibrary(c.Request().Context(), libraryUid, page*size-size, size, showAll)
 

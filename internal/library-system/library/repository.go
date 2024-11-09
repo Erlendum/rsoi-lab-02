@@ -22,7 +22,7 @@ func NewRepository(conn *sqlx.DB) *repository {
 
 func (r *repository) GetLibraries(ctx context.Context, city string, offset, limit int) ([]library, error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-	builder := psql.Select("id", "libraryUid", "name", "address", "city").
+	builder := psql.Select("id", "library_uid", "name", "address", "city").
 		From("library").
 		Where(sq.Eq{"city": city}).Limit(uint64(limit)).Offset(uint64(offset))
 
@@ -35,7 +35,7 @@ func (r *repository) GetLibraries(ctx context.Context, city string, offset, limi
 	defer cancel()
 
 	libraries := make([]library, 0)
-	err = r.conn.GetContext(ctx, &libraries, query, args...)
+	err = r.conn.SelectContext(ctx, &libraries, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute query")
 	}
@@ -50,16 +50,17 @@ func (r *repository) GetLibraries(ctx context.Context, city string, offset, limi
 
 func (r *repository) GetBooksByLibrary(ctx context.Context, libraryUid string, offset, limit int, showAll bool) ([]book, error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-	builder := psql.Select("b.id", "b.bookUid", "b.name", "b.author", "b.genre", "b.condition", "lb.available_count").
+	builder := psql.Select("b.id", "b.book_uid", "b.name", "b.author", "b.genre", "b.condition", "lb.available_count").
 		From("books b").
 		Join("library_books lb ON lb.book_id = b.id").
 		Join("library l ON lb.library_id = l.id").
-		Where(sq.Eq{"library.libraryUid": libraryUid}).Limit(uint64(limit)).Offset(uint64(offset))
+		Where(sq.Eq{"l.library_uid": libraryUid}).Limit(uint64(limit)).Offset(uint64(offset))
 
 	if !showAll {
 		builder = builder.Where(sq.Gt{"lb.available_count": 0})
 	}
 	query, args, err := builder.ToSql()
+
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build query")
 	}
@@ -68,7 +69,7 @@ func (r *repository) GetBooksByLibrary(ctx context.Context, libraryUid string, o
 	defer cancel()
 
 	books := make([]book, 0)
-	err = r.conn.GetContext(ctx, &books, query, args...)
+	err = r.conn.SelectContext(ctx, &books, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute query")
 	}
@@ -86,7 +87,7 @@ func (r *repository) GetBooksAvailableCount(ctx context.Context, libraryUid, boo
 		From("library_books lb").
 		Join("books b ON lb.book_id = b.id").
 		Join("library l ON lb.library_id = l.id").
-		Where(sq.Eq{"library.libraryUid": libraryUid, "b.bookUid": bookUid})
+		Where(sq.Eq{"l.library_uid": libraryUid, "b.book_uid": bookUid})
 
 	query, args, err := builder.ToSql()
 	if err != nil {
@@ -107,9 +108,9 @@ func (r *repository) GetBooksAvailableCount(ctx context.Context, libraryUid, boo
 
 func (r *repository) GetBooksByUids(ctx context.Context, uids []string) ([]book, error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-	builder := psql.Select("id", "bookUid", "name", "author", "genre", "condition").
+	builder := psql.Select("id", "book_uid", "name", "author", "genre", "condition").
 		From("books").
-		Where(sq.Eq{"bookUid": uids})
+		Where(sq.Eq{"book_uid": uids})
 
 	query, args, err := builder.ToSql()
 	if err != nil {
@@ -120,7 +121,7 @@ func (r *repository) GetBooksByUids(ctx context.Context, uids []string) ([]book,
 	defer cancel()
 
 	books := make([]book, 0)
-	err = r.conn.GetContext(ctx, &books, query, args...)
+	err = r.conn.SelectContext(ctx, &books, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute query")
 	}
@@ -134,9 +135,9 @@ func (r *repository) GetBooksByUids(ctx context.Context, uids []string) ([]book,
 
 func (r *repository) GetLibrariesByUids(ctx context.Context, uids []string) ([]library, error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-	builder := psql.Select("id", "libraryUid", "name", "address", "city").
+	builder := psql.Select("id", "library_uid", "name", "address", "city").
 		From("library").
-		Where(sq.Eq{"libraryUid": uids})
+		Where(sq.Eq{"library_uid": uids})
 
 	query, args, err := builder.ToSql()
 	if err != nil {
@@ -147,7 +148,7 @@ func (r *repository) GetLibrariesByUids(ctx context.Context, uids []string) ([]l
 	defer cancel()
 
 	libraries := make([]library, 0)
-	err = r.conn.GetContext(ctx, &libraries, query, args...)
+	err = r.conn.SelectContext(ctx, &libraries, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute query")
 	}

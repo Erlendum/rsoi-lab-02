@@ -2,6 +2,7 @@ package rating
 
 import (
 	"context"
+	"database/sql"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -98,6 +99,9 @@ func (r *repository) GetRatingRecord(ctx context.Context, username string) (rati
 
 	err = r.conn.GetContext(ctx, &res, query, args...)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ratingRecord{}, errRecordNotFound
+		}
 		return ratingRecord{}, errors.Wrap(err, "failed to execute query")
 	}
 

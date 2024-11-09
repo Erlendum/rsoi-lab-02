@@ -2,7 +2,7 @@ package library
 
 type library struct {
 	ID         int    `db:"id"`
-	LibraryUid string `db:"libraryUid"`
+	LibraryUid string `db:"library_uid"`
 	Name       string `db:"name"`
 	Address    string `db:"address"`
 	City       string `db:"city"`
@@ -10,10 +10,10 @@ type library struct {
 
 type book struct {
 	ID             int    `db:"id"`
-	BookUid        string `db:"bookUid"`
+	BookUid        string `db:"book_uid"`
 	Name           string `db:"name"`
 	Author         string `db:"author"`
 	Genre          string `db:"genre"`
 	Condition      string `db:"condition"`
-	AvailableCount int    `db:"availableCount"`
+	AvailableCount int    `db:"available_count"`
 }
